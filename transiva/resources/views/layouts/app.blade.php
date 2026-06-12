@@ -192,10 +192,30 @@
 <body>
     <nav>
         <a href="{{ route('home') }}" class="nav-logo">Trans<span>iva</span></a>
+        
+        <!-- Simulateur de Rôles -->
+        <div style="background: rgba(232,197,71,.08); border: 1px solid rgba(232,197,71,0.25); border-radius: 20px; padding: 0.35rem 0.85rem; display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem;">
+            <span style="color: var(--accent); font-weight: 600;">Simuler le Rôle :</span>
+            <select onchange="window.location.href='/switch-user/' + this.value" style="background: transparent; border: none; color: var(--white); font-weight: 500; cursor: pointer; padding: 0; width: auto; font-size: 0.8rem;">
+                <option value="4" style="background:#111;color:#fff;" {{ auth()->id() == 4 ? 'selected' : '' }}>👤 Voyageur: Fatoumata</option>
+                <option value="5" style="background:#111;color:#fff;" {{ auth()->id() == 5 ? 'selected' : '' }}>👤 Voyageur: Ousmane</option>
+                <option value="2" style="background:#111;color:#fff;" {{ auth()->id() == 2 ? 'selected' : '' }}>🚌 Opérateur: Sama Transport</option>
+                <option value="3" style="background:#111;color:#fff;" {{ auth()->id() == 3 ? 'selected' : '' }}>🚌 Opérateur: Africa Express</option>
+                <option value="1" style="background:#111;color:#fff;" {{ auth()->id() == 1 ? 'selected' : '' }}>⚙️ Admin: Directeur Transiva</option>
+            </select>
+        </div>
+
         <ul class="nav-links">
-            <li><a href="{{ route('lignes.index') }}" class="{{ request()->routeIs('lignes*') ? 'active' : '' }}">Lignes</a></li>
-            <li><a href="{{ route('voyageur.index') }}" class="{{ request()->routeIs('voyageur*') ? 'active' : '' }}">Mon espace</a></li>
-            <li><a href="{{ route('admin.dashboard') }}" class="btn-nav">Admin</a></li>
+            <li><a href="{{ route('home') }}" class="{{ request()->routeIs('home') || request()->routeIs('trips*') ? 'active' : '' }}">Rechercher</a></li>
+            @if(auth()->check())
+                @if(auth()->user()->role === 'Traveler')
+                    <li><a href="{{ route('voyageur.reservations') }}" class="{{ request()->routeIs('voyageur*') ? 'active' : '' }}">Mon Espace (Billets)</a></li>
+                @elseif(auth()->user()->role === 'Operator')
+                    <li><a href="{{ route('operator.dashboard') }}" class="btn-nav" style="background: #4caf82; color: #fff !important;">Espace Opérateur</a></li>
+                @elseif(auth()->user()->role === 'Admin')
+                    <li><a href="{{ route('admin.dashboard') }}" class="btn-nav">Admin</a></li>
+                @endif
+            @endif
         </ul>
     </nav>
 
