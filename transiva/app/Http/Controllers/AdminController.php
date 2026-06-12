@@ -2,108 +2,119 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Ligne;
-use App\Models\Horaire;
+use App\Models\User;
+use App\Models\Operator;
+use App\Models\Route;
+use App\Models\Trip;
 use App\Models\Reservation;
-use App\Models\Voyageur;
-use App\Models\Billet;
+use App\Models\Payment;
 use Illuminate\Http\Request;
 
 class AdminController extends Controller
 {
+    // Notes de changement (Variables en Anglais) :
+    // - User : Gère tous les comptes d'utilisateurs.
+    // - Operator : Modèle des transporteurs.
+    // - Payment : Transactions financières.
+    // - totalCommissions : Revenu de commission calculé de manière dynamique.
+
+    private function checkAdmin()
+    {
+        if (!auth()->check() || auth()->user()->role !== 'Admin') {
+            abort(403, 'Accès réservé aux administrateurs de la plateforme.');
+        }
+    }
+
     public function dashboard()
     {
-        $stats = [
-            'lignes'       => Ligne::count(),
-            'horaires'     => Horaire::count(),
-            'reservations' => Reservation::count(),
-            'voyageurs'    => Voyageur::count(),
-            'billets'      => Billet::count(),
-            'revenus'      => Billet::sum('prix'),
-        ];
+        $this->checkAdmin();
 
-        $dernieres_reservations = Reservation::with(['voyageur', 'horaire.ligne', 'billet'])
+        // Statistiques globales de la plateforme
+        $operatorsCount = Operator::count();
+        $routesCount = Route::count();
+        $reservationsCount = Reservation::count();
+        
+        // Calculer le volume total des ventes et les commissions cumulées
+        $payments = Payment::with('reservation.trip.route.operator')
+            ->where('statut', 'Reussi')
+            ->get();
+            
+        $volumeTransactions = $payments->sum('montant');
+        $totalCommissions = 0;
+
+        foreach ($payments as $payment) {
+            $operator = $payment->reservation->trip->route->operator ?? null;
+            $rate = $operator ? $operator->commission_rate : 10.00;
+            $totalCommissions += $payment->montant * ($rate / 100);
+        }
+
+        // Récupérer les opérateurs en attente de validation
+        $pendingOperators = Operator::with('user')
+            ->where('statut', 'En attente')
+            ->get();
+
+        // Récupérer les 10 dernières réservations sur toute la plateforme
+        $recentReservations = Reservation::with(['user', 'trip.route.operator', 'ticket', 'payment'])
             ->orderByDesc('id')
             ->take(10)
             ->get();
 
-        $reservations_par_statut = Reservation::selectRaw('statut, COUNT(*) as total')
-            ->groupBy('statut')
-            ->pluck('total', 'statut');
-
-        return view('admin.dashboard', compact('stats', 'dernieres_reservations', 'reservations_par_statut'));
+        return view('admin.dashboard', compact(
+            'operatorsCount', 
+            'routesCount', 
+            'reservationsCount', 
+            'volumeTransactions', 
+            'totalCommissions', 
+            'pendingOperators', 
+            'recentReservations'
+        ));
     }
 
-    // === LIGNES ===
-    public function lignes()
+    // === GESTION DES OPÉRATEURS ===
+    public function operators()
     {
-        $lignes = Ligne::withCount('horaires')->get();
-        return view('admin.lignes', compact('lignes'));
+        $this->checkAdmin();
+        $operators = Operator::with('user')->withCount(['vehicles', 'routes'])->get();
+        return view('admin.operators', compact('operators'));
     }
 
-    public function storeLigne(Request $request)
+    public function updateOperatorStatus(Request $request, $id)
     {
+        $this->checkAdmin();
         $request->validate([
-            'nom'      => 'required|string|max:100',
-            'depart'   => 'required|string|max:100',
-            'arrivee'  => 'required|string|max:100',
-            'duree_min'=> 'required|integer|min:1',
+            'statut' => 'required|in:En attente,Valide,Suspendu',
+            'commission_rate' => 'nullable|numeric|min:0|max:100'
         ]);
-        Ligne::create($request->only('nom', 'depart', 'arrivee', 'duree_min'));
-        return back()->with('success', 'Ligne créée avec succès.');
+
+        $operator = Operator::findOrFail($id);
+        
+        $updateData = ['statut' => $request->statut];
+        if ($request->has('commission_rate')) {
+            $updateData['commission_rate'] = $request->commission_rate;
+        }
+
+        $operator->update($updateData);
+
+        return back()->with('success', "Le statut de l'opérateur {$operator->nom_compagnie} a été mis à jour.");
     }
 
-    public function destroyLigne($id)
+    // === TRANSACTIONS (PAIEMENTS) ===
+    public function transactions()
     {
-        Ligne::findOrFail($id)->delete();
-        return back()->with('success', 'Ligne supprimée.');
+        $this->checkAdmin();
+        
+        $payments = Payment::with(['reservation.user', 'reservation.trip.route.operator', 'reservation.ticket'])
+            ->orderByDesc('id')
+            ->get();
+
+        return view('admin.transactions', compact('payments'));
     }
 
-    // === HORAIRES ===
-    public function horaires()
+    // === UTILISATEURS ===
+    public function users()
     {
-        $horaires = Horaire::with('ligne')->get();
-        $lignes   = Ligne::all();
-        return view('admin.horaires', compact('horaires', 'lignes'));
-    }
-
-    public function storeHoraire(Request $request)
-    {
-        $request->validate([
-            'ligne_id'     => 'required|exists:Lignes,id',
-            'heure_depart' => 'required',
-            'heure_arrivee'=> 'required',
-            'jours'        => 'required|string|max:100',
-        ]);
-        Horaire::create($request->only('ligne_id', 'heure_depart', 'heure_arrivee', 'jours'));
-        return back()->with('success', 'Horaire ajouté avec succès.');
-    }
-
-    public function destroyHoraire($id)
-    {
-        Horaire::findOrFail($id)->delete();
-        return back()->with('success', 'Horaire supprimé.');
-    }
-
-    // === RÉSERVATIONS ===
-    public function reservations()
-    {
-        $reservations = Reservation::with(['voyageur', 'horaire.ligne', 'billet'])
-            ->orderByDesc('id')->get();
-        return view('admin.reservations', compact('reservations'));
-    }
-
-    public function updateStatut(Request $request, $id)
-    {
-        $request->validate(['statut' => 'required|in:En attente,Confirmée,Annulée']);
-        Reservation::findOrFail($id)->update(['statut' => $request->statut]);
-        return back()->with('success', 'Statut mis à jour.');
-    }
-
-    // === VOYAGEURS ===
-    public function voyageurs()
-    {
-        $voyageurs = Voyageur::withCount('reservations')->get();
-        return view('admin.voyageurs', compact('voyageurs'));
+        $this->checkAdmin();
+        $users = User::withCount('reservations')->orderBy('id', 'desc')->get();
+        return view('admin.users', compact('users'));
     }
 }

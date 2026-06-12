@@ -9,20 +9,39 @@ class Reservation extends Model
     protected $table = 'Reservations';
     public $timestamps = false;
 
-    protected $fillable = ['voyageur_id', 'horaire_id', 'date_voyage', 'nb_places', 'statut'];
+    // Notes de changement (Variables en Anglais) :
+    // - user_id : ID de l'utilisateur voyageur (remplace voyageur_id).
+    // - trip_id : ID du voyage choisi (remplace horaire_id).
+    // - date_voyage : Date programmée du départ.
+    // - nb_places : Nombre de tickets achetés.
+    // - sieges : Numéros de sièges choisis (nouveauté marketplace).
+    // - statut : Statut actuel ('En attente', 'Payee', 'Annulee').
+    protected $fillable = [
+        'user_id',
+        'trip_id',
+        'date_voyage',
+        'nb_places',
+        'sieges',
+        'statut',
+    ];
 
-    public function voyageur()
+    public function user()
     {
-        return $this->belongsTo(Voyageur::class, 'voyageur_id');
+        return $this->belongsTo(User::class, 'user_id');
     }
 
-    public function horaire()
+    public function trip()
     {
-        return $this->belongsTo(Horaire::class, 'horaire_id');
+        return $this->belongsTo(Trip::class, 'trip_id');
     }
 
-    public function billet()
+    public function ticket()
     {
-        return $this->hasOne(Billet::class, 'reservation_id');
+        return $this->hasOne(Ticket::class, 'reservation_id');
+    }
+
+    public function payment()
+    {
+        return $this->hasOne(Payment::class, 'reservation_id');
     }
 }

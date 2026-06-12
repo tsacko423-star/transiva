@@ -62,6 +62,10 @@ class Kernel extends HttpKernel
         'password.confirm' => \Illuminate\Auth\Middleware\RequirePassword::class,
         'signed' => \App\Http\Middleware\ValidateSignature::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
-        'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
+        'verified'      => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
+        // Note : 'simulate.user' remplace la Closure anonyme de web.php
+        // Pourquoi : Route::middleware() n'accepte que des strings (noms de middleware),
+        //            pas des Closures — voir App\Http\Middleware\SimulateUser
+        'simulate.user' => \App\Http\Middleware\SimulateUser::class,
     ];
 }

@@ -137,6 +137,19 @@
 <aside>
     <a href="{{ route('admin.dashboard') }}" class="sidebar-logo">Trans<span>iva</span></a>
 
+    <div style="padding: 0.5rem 1rem;">
+        <div style="background: rgba(232,197,71,.08); border: 1px solid rgba(232,197,71,0.25); border-radius: 6px; padding: 0.4rem; font-size: 0.72rem; display: flex; flex-direction: column; gap: 0.25rem;">
+            <span style="color: var(--accent); font-weight: 600;">Simuler le Rôle :</span>
+            <select onchange="window.location.href='/switch-user/' + this.value" style="background: #111; border: 1px solid #333; color: var(--white); font-size: 0.72rem; cursor: pointer; padding: 0.2rem; width: 100%;">
+                <option value="4" {{ auth()->id() == 4 ? 'selected' : '' }}>👤 Voyageur: Fatoumata</option>
+                <option value="5" {{ auth()->id() == 5 ? 'selected' : '' }}>👤 Voyageur: Ousmane</option>
+                <option value="2" {{ auth()->id() == 2 ? 'selected' : '' }}>🚌 Opérateur: Sama Transport</option>
+                <option value="3" {{ auth()->id() == 3 ? 'selected' : '' }}>🚌 Opérateur: Africa Express</option>
+                <option value="1" {{ auth()->id() == 1 ? 'selected' : '' }}>⚙️ Admin: Directeur Transiva</option>
+            </select>
+        </div>
+    </div>
+
     <p class="sidebar-section">Principal</p>
     <ul class="sidebar-nav">
         <li><a href="{{ route('admin.dashboard') }}" class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
@@ -144,19 +157,16 @@
         </a></li>
     </ul>
 
-    <p class="sidebar-section">Gestion</p>
+    <p class="sidebar-section">Gestion Marché</p>
     <ul class="sidebar-nav">
-        <li><a href="{{ route('admin.lignes') }}" class="{{ request()->routeIs('admin.lignes*') ? 'active' : '' }}">
-            <span class="icon">🗺️</span> Lignes
+        <li><a href="{{ route('admin.operators') }}" class="{{ request()->routeIs('admin.operators*') ? 'active' : '' }}">
+            <span class="icon">🚌</span> Opérateurs
         </a></li>
-        <li><a href="{{ route('admin.horaires') }}" class="{{ request()->routeIs('admin.horaires*') ? 'active' : '' }}">
-            <span class="icon">🕐</span> Horaires
+        <li><a href="{{ route('admin.transactions') }}" class="{{ request()->routeIs('admin.transactions*') ? 'active' : '' }}">
+            <span class="icon">💰</span> Transactions
         </a></li>
-        <li><a href="{{ route('admin.reservations') }}" class="{{ request()->routeIs('admin.reservations*') ? 'active' : '' }}">
-            <span class="icon">🎫</span> Réservations
-        </a></li>
-        <li><a href="{{ route('admin.voyageurs') }}" class="{{ request()->routeIs('admin.voyageurs*') ? 'active' : '' }}">
-            <span class="icon">👤</span> Voyageurs
+        <li><a href="{{ route('admin.users') }}" class="{{ request()->routeIs('admin.users*') ? 'active' : '' }}">
+            <span class="icon">👥</span> Utilisateurs
         </a></li>
     </ul>
 
